@@ -83,7 +83,7 @@ for i in range(n+2,n+10):
 	RF.append(int(content[i]))
 
 
-RAT=[None]*8   #TUPLE(I,J) I=0 if it points to RF and I=1 If it points to Register Station
+RAT=[None]*8   
 
 
 class ReservationStation:
