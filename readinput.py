@@ -4,7 +4,34 @@ class Instruction:
 		self.destreg=destreg
 		self.sreg1=sreg1
 		self.sreg2=sreg2
+
+class ExecutionUnit:
+	def __init__(self):
+		self.isbusy=0
+		self.curentRS=None
+		self.destinationRS=None
+		self.remainingcycles=None
+addExecutionUnit=ExecutionUnit()
+multExecutionUnit=ExecutionUnit()
+
+def isExecutionUnitFree(op):
+	if(op==1 or op==0):
+		return addExecutionUnit.isbusy
+	elif(op==2 or op==3):
+		return multExecutionUnit.isbusy
+	else:
+		print('invalid code')
+
+def assignExecutionStation(reservationS,i):
 	
+	if (reservationS.op==1 or reservationS.op==0):
+		addExecutionUnit.isbusy=1
+		addExecutionUnit.curentRS=i
+		addExecutionUnit.destinationRS=
+		addExecutionUnit.remainingcycles=2
+	
+	elif(instr.op=2 or instr.op=3):
+
 
 with open("input.txt","r") as f:
 	 content=f.read().splitlines()
@@ -55,10 +82,14 @@ for i in range(5):
 	RS.append(temp)
 # print(RS[0])	
 def printReservationStation(RS):
+	print('\n Reservation Station')
 	print('RS 	busy 	op  	vj  	vk  	qj  	qk  	disp')
 	for i in range(len(RS)):
 		print(RS[i])
-
+	printRAT(RAT)
+def printRAT(RAT):
+	for i in range(len(RAT)):
+		print('R',i,' ',RAT[i])
 
 
 
@@ -67,7 +98,8 @@ def printReservationStation(RS):
 # 2.issue, dispatch, execute, writeback,capture 
 
 def isRSAvailable(opcode):
-	if opcode==0:
+	print('opcode',opcode)
+	if (opcode==0 or opcode==1):
 		#check if add RS is available
 		if RS[0].busy==0:
 			#assign instr to rs0
@@ -80,7 +112,7 @@ def isRSAvailable(opcode):
 			# reservation station is not available do not issue instr
 			return -1
 
-	elif opcode==1:
+	elif (opcode==2 or opcode==3):
 		#check is multiply RS available
 		if RS[3].busy==0:
 			#assign instr to rs0
@@ -93,6 +125,7 @@ def isRSAvailable(opcode):
 def simulateCycle():
 	#1. issue 
 	freestation=isRSAvailable(instrList[0].op)
+	print('freestation',freestation)
 	if(freestation!=-1):
 		#issue the instr
 		instr=instrList.pop(0)
@@ -108,10 +141,10 @@ def simulateCycle():
 		#second source register
 		if(RAT[instr.sreg2]==-1):
 				#assign value from RF
-			RS[freestation].vk=RF[instr.sreg1]
+			RS[freestation].vk=RF[instr.sreg2]
 		else:
 			#assign value from RS
-			RS[freestation].qk=RF[instr.sreg1]
+			RS[freestation].qk=RF[instr.sreg2]
 
 		RAT[instr.destreg]=freestation
 	else:
@@ -119,6 +152,17 @@ def simulateCycle():
 		pass
 		
 	#2 dispatch
+	# see if among RS their is any station with both ready values
+	for i in range(len(RS)):
+		if(RS[i].busy==1):
+			if(RS[i].vk!==-1 or RS[i].vk!==-1):
+				if(isExecutionUnitFree(RS[i].op)==1)
+					RS[i].disp=1
+					assignExecutionStation(RS[i])
+
+		else:
+			#do nothing
+
 
 
 	#3 execute
@@ -126,6 +170,8 @@ def simulateCycle():
 
 	#4 writeback
 
+printReservationStation(RS)
+simulateCycle()
 printReservationStation(RS)
 simulateCycle()
 printReservationStation(RS)
