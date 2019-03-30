@@ -7,30 +7,63 @@ class Instruction:
 
 class ExecutionUnit:
 	def __init__(self):
-		self.isbusy=0
-		self.curentRS=None
-		self.destinationRS=None
+		self.busy=0
+		self.currentRS=None
+		self.executionStarted=None
+		# self.destinationRS=None
 		self.remainingcycles=None
+		self.op=None
+		self.arg1=None
+		self.arg2=None
+
+	def clear(self):
+		self.busy=0
+		self.curentRS=None
+		self.executionStarted=None
+		self.op=None
+		self.argr1=None
+		self.arg2=None
+		self.op=None
+
 addExecutionUnit=ExecutionUnit()
 multExecutionUnit=ExecutionUnit()
-
+currentCycle=1
 def isExecutionUnitFree(op):
 	if(op==1 or op==0):
-		return addExecutionUnit.isbusy
+		return addExecutionUnit.busy
 	elif(op==2 or op==3):
-		return multExecutionUnit.isbusy
+		return multExecutionUnit.busy
 	else:
 		print('invalid code')
 
-def assignExecutionStation(reservationS,i):
-	
+def assignExecutionStation(reservationS,i,cycle):	
 	if (reservationS.op==1 or reservationS.op==0):
-		addExecutionUnit.isbusy=1
-		addExecutionUnit.curentRS=i
-		addExecutionUnit.destinationRS=
-		addExecutionUnit.remainingcycles=2
+		addExecutionUnit.busy=1
+		addExecutionUnit.currentRS=i
+		addExecutionUnit.executionStarted=cycle+1
+		addExecutionUnit.op=reservationS.op
+		addExecutionUnit.arg1=reservationS.vj
+		addExecutionUnit.arg2=reservationS.vk
+		return
 	
-	elif(instr.op=2 or instr.op=3):
+	elif(instr.op==2):
+		multExecutionUnit.busy=1
+		multExecutionUnit.currentRS=i
+		multExecutionUnit.executionStarted=cycle+1
+		multExecutionUnit.op=reservationS.op
+		multExecutionUnit.arg1=reservationS.vj
+		multExecutionUnit.arg2=reservationS.vk
+		return
+	elif(instr.op==3):
+		multExecutionUnit.busy=1
+		multExecutionUnit.currentRS=i
+		multExecutionUnit.remainingcycles=40
+		multExecutionUnit.executionStarted=cycle+1
+		multExecutionUnit.op=reservationS.op
+		multExecutionUnit.arg1=reservationS.vj
+		multExecutionUnit.arg2=reservationS.vk
+		return
+
 
 
 with open("input.txt","r") as f:
@@ -52,7 +85,7 @@ for i in range(n+2,n+10):
 	RF.append(int(content[i]))
 print(RF)
 
-RAT=[-1,-1,-1,-1,-1,-1,-1,-1]   #TUPLE(I,J) I=0 if it points to RF and I=1 If it points to Register Station
+RAT=[None]*8   #TUPLE(I,J) I=0 if it points to RF and I=1 If it points to Register Station
 print(RAT)
 
 
@@ -72,6 +105,12 @@ class ReservationStation:
 
 	def clear(self):
 		self.busy=0
+		self.op=-1
+		self.vj=-1
+		self.vk=-1
+		self.qj=-1
+		self.qk=-1
+		self.disp=0
 
 	def __str__(self):
 		return 'RS'+str(self.id)+' 	'+str(self.busy)+'  	'+str(self.op)+'  	'+str(self.vj)+'  	'+str(self.vk)+'  	'+str(self.qj)+'  	'+str(self.qk)+'  	'+str(self.disp)
@@ -122,61 +161,129 @@ def isRSAvailable(opcode):
 		else:
 			return -1
 
+
+def writeBack():
+	if addExecutionUnit.busy==1:
+		if (currentCycle== addExecutionUnit.executionStarted+2):
+			currentRS=addExecutionUnit.currentRS
+			if(addExecutionUnit.op==0):
+				result=addExecutionUnit.vj+ addExecutionUnit.vk
+			else:
+				result=addExecutionUnit.vj-addExecutionUnit.vk			
+			for i in range(len(RAT)):
+				if(RAT[i]== currentRS):
+					RF[i]= result
+					RAT[i]=None
+			for i in range(len(RS)):
+				if(RS[i].qk==currentRS):
+					RS[i].vk=result
+					RS[i].qk=-1
+				if(RS[i].qj==currentRS):
+					RS[i].vj=result
+					RS[i].qj=-1
+			RS[currentRS].clear()
+			addExecutionUnit.clear()
+			print('add or sub done result is ',result)
+
+	if multExecutionUnit.busy==1:
+			if (multExecutionUnit.op==2 and currentCycle== addExecutionUnit.executionStarted+10):
+				currentRS=multExecutionUnit.currentRS
+				result=multExecutionUnit.vj* multExecutionUnit.vk			
+				for i in range(len(RAT)):
+					if(RAT[i]== currentRS):
+						RF[i]= result
+						RAT[i]=None
+				for i in range(len(RS)):
+					if(RS[i].qk==currentRS):
+						RS[i].vk=result
+						RS[i].qk=-1
+					if(RS[i].qj==currentRS):
+						RS[i].vj=result
+						RS[i].qj=-1
+				RS[currentRS].clear()
+				multExecutionUnit.clear()
+				print('multiplication done result is ',result)
+
+			elif (multExecutionUnit.op==3 and currentCycle== addExecutionUnit.executionStarted+40):
+				currentRS=multExecutionUnit.currentRS
+				result=multExecutionUnit.vj/ multExecutionUnit.vk			
+				for i in range(len(RAT)):
+					if(RAT[i]== currentRS):
+						RF[i]= result
+						RAT[i]=None
+				for i in range(len(RS)):
+					if(RS[i].qk==currentRS):
+						RS[i].vk=result
+						RS[i].qk=-1
+					if(RS[i].qj==currentRS):
+						RS[i].vj=result
+						RS[i].qj=-1
+				RS[currentRS].clear()
+				multExecutionUnit.clear()
+				print('division done result is ',result)
+
+
+
+
+
+
+
 def simulateCycle():
 	#1. issue 
-	freestation=isRSAvailable(instrList[0].op)
-	print('freestation',freestation)
-	if(freestation!=-1):
-		#issue the instr
-		instr=instrList.pop(0)
-		RS[freestation].busy=1
-		RS[freestation].op=instr.op
-		#first source register
-		if(RAT[instr.sreg1]==-1):
-			#assign value from RF
-			RS[freestation].vj=RF[instr.sreg1]
-		else:
-			#assign value from RS
-			RS[freestation].qj=RF[instr.sreg1]
-		#second source register
-		if(RAT[instr.sreg2]==-1):
+	if len(instrList)>0:
+		freestation=isRSAvailable(instrList[0].op)
+		print('freestation',freestation)
+		if(freestation!=-1):
+			#issue the instr
+			instr=instrList.pop(0)
+			RS[freestation].busy=1
+			RS[freestation].op=instr.op
+			#first source register
+			if(RAT[instr.sreg1]==None):
 				#assign value from RF
-			RS[freestation].vk=RF[instr.sreg2]
-		else:
-			#assign value from RS
-			RS[freestation].qk=RF[instr.sreg2]
+				RS[freestation].vj=RF[instr.sreg1]
+			else:
+				#assign value from RS
+				RS[freestation].qj=RF[instr.sreg1]
+			#second source register
+			if(RAT[instr.sreg2]==None):
+					#assign value from RF
+				RS[freestation].vk=RF[instr.sreg2]
+			else:
+				#assign value from RS
+				RS[freestation].qk=RF[instr.sreg2]
 
-		RAT[instr.destreg]=freestation
-	else:
-		# RS  is not available do nothing
-		pass
+			RAT[instr.destreg]=freestation
+		else:
+			# RS  is not available do nothing
+			pass
 		
 	#2 dispatch
 	# see if among RS their is any station with both ready values
 	for i in range(len(RS)):
-		if(RS[i].busy==1):
-			if(RS[i].vk!==-1 or RS[i].vk!==-1):
-				if(isExecutionUnitFree(RS[i].op)==1)
+		if(RS[i].busy==1 and RS[i].disp==0):
+			if(RS[i].vk!=-1 or RS[i].vk!=-1):
+				if(isExecutionUnitFree(RS[i].op)==1):
 					RS[i].disp=1
-					assignExecutionStation(RS[i])
-
-		else:
-			#do nothing
-
-
-
+					assignExecutionStation(RS[i],i,currentCycle)
 	#3 execute
 
-
 	#4 writeback
+	writeBack()
+
+	print('-------------Current Cycle-------',currentCycle)
+	global currentCycle
+	currentCycle+=1
+
+
 
 printReservationStation(RS)
-simulateCycle()
-printReservationStation(RS)
-simulateCycle()
-printReservationStation(RS)
 
 
+for i in range(13):
+	simulateCycle()
+
+printReservationStation(RS)
 
 # for i in range(cycles):
 # 	simulateCycle()
