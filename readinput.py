@@ -5,6 +5,32 @@ class Instruction:
 		self.sreg1=sreg1
 		self.sreg2=sreg2
 
+class ReservationStation:
+	def __init__(self,id,busy=1,op=-1,vj=None,vk=None,qj=-1,qk=-1,disp=0):
+		self.id=id
+		self.busy=busy
+		self.op=op
+		self.vj=vj
+		self.vk=vk
+		self.qj=qj
+		self.qk=qk
+		self.disp=disp
+
+	def dispatch(self):
+		self.disp=1
+
+	def clear(self):
+		self.busy=0
+		self.op=-1
+		self.vj=None
+		self.vk=None
+		self.qj=-1
+		self.qk=-1
+		self.disp=0
+
+	def __str__(self):
+		return 'RS'+str(self.id)+' 	'+str(self.busy)+'  	'+str(self.op)+'  	'+str(self.vj)+'  	'+str(self.vk)+'  	'+str(self.qj)+'  	'+str(self.qk)+'  	'+str(self.disp)
+
 class ExecutionUnit:
 	def __init__(self):
 		self.busy=0
@@ -25,9 +51,30 @@ class ExecutionUnit:
 		self.arg2=None
 		self.op=None
 
-addExecutionUnit=ExecutionUnit()
-multExecutionUnit=ExecutionUnit()
-currentCycle=1
+def isRSAvailable(opcode):
+	if (opcode==0 or opcode==1):
+		#check if add RS is available
+		if RS[0].busy==0:
+			#assign instr to rs0
+			return 0
+		elif RS[1].busy==0:
+			return 1
+		elif RS[2].busy==0:
+			return 2
+		else:
+			# reservation station is not available do not issue instr
+			return -1
+
+	elif (opcode==2 or opcode==3):
+		#check is multiply RS available
+		if RS[3].busy==0:
+			#assign instr to rs0
+			return 3
+		elif RS[4].busy==0:
+			return 4
+		else:
+			return -1
+
 def isExecutionUnitFree(op):
 	if(op==1 or op==0):
 		return not addExecutionUnit.busy
@@ -64,123 +111,8 @@ def assignExecutionStation(reservationS,i,cycle):
 		multExecutionUnit.arg2=reservationS.vk
 		return
 
-
-
-with open("input.txt","r") as f:
-	 content=f.read().splitlines()
-n=int(content[0])
-cycles=int(content[1])
-instrList=[]
-# reading instructions
-for i in range(n):
-	temp = [int(value) for value in content[i+2].split()]
-	tempInstr=Instruction(temp[0],temp[1],temp[2],temp[3])
-	instrList.append(tempInstr)
-
-# index i stores Ri register Value
-RF=[] #index 0 is empty
-for i in range(n+2,n+10):
-	RF.append(int(content[i]))
-
-
-RAT=[None]*8   
-
-
-class ReservationStation:
-	def __init__(self,id,busy=1,op=-1,vj=None,vk=None,qj=-1,qk=-1,disp=0):
-		self.id=id
-		self.busy=busy
-		self.op=op
-		self.vj=vj
-		self.vk=vk
-		self.qj=qj
-		self.qk=qk
-		self.disp=disp
-
-	def dispatch(self):
-		self.disp=1
-
-	def clear(self):
-		self.busy=0
-		self.op=-1
-		self.vj=None
-		self.vk=None
-		self.qj=-1
-		self.qk=-1
-		self.disp=0
-
-	def __str__(self):
-		return 'RS'+str(self.id)+' 	'+str(self.busy)+'  	'+str(self.op)+'  	'+str(self.vj)+'  	'+str(self.vk)+'  	'+str(self.qj)+'  	'+str(self.qk)+'  	'+str(self.disp)
-
-RS=[]
-for i in range(5):
-	temp=ReservationStation(busy=0,id=i,op=-1,vj=None,vk=None,qj=-1,qk=-1,disp=0)
-	RS.append(temp)
-
-def printReservationStation(RS):
-	print('\n Reservation Station')
-	print('RS 	busy 	op  	vj  	vk  	qj  	qk  	disp')
-	for i in range(len(RS)):
-		print(RS[i])
-	printRAT(RAT)
-
-def printRAT(RAT):
-	print('---------------------------')
-	print('    ','RF		RAT')
-	for i in range(len(RAT)):
-		print(i,': ',RF[i],end="")
-		if(RAT[i]!=None):
-			print('		RS',RAT[i],sep="")
-		else:
-			print('')
-
-def printInstructions():
-	global instrList
-	print('-------------')
-	print('Instruction Queue')
-	for instr in instrList:
-		if(instr.op==0):
-			print("ADD",end=" ")
-		if(instr.op==1):
-			print("Sub",end=" ")
-		if(instr.op==2):
-			print("Mul",end=" ")
-		if(instr.op==3):
-			print("Div",end=" ")
-		print("R",instr.destreg,", ","R",instr.sreg1,", ","R",instr.sreg2,sep="")
-	print()
-
-#to do's
-# 1.iterate each cycle
-# 2.issue, dispatch, execute, writeback,capture 
-
-def isRSAvailable(opcode):
-	if (opcode==0 or opcode==1):
-		#check if add RS is available
-		if RS[0].busy==0:
-			#assign instr to rs0
-			return 0
-		elif RS[1].busy==0:
-			return 1
-		elif RS[2].busy==0:
-			return 2
-		else:
-			# reservation station is not available do not issue instr
-			return -1
-
-	elif (opcode==2 or opcode==3):
-		#check is multiply RS available
-		if RS[3].busy==0:
-			#assign instr to rs0
-			return 3
-		elif RS[4].busy==0:
-			return 4
-		else:
-			return -1
-
-
 def writeBack():
-	# print('calling writeback cycle',currentCycle)
+	#do write back
 	if addExecutionUnit.busy==1:
 		if (currentCycle== addExecutionUnit.executionStarted+2):
 			currentRS=addExecutionUnit.currentRS
@@ -248,7 +180,7 @@ def writeBack():
 
 def simulateCycle():
 	global currentCycle
-	# print('-------------Current Cycle-------',currentCycle)
+	
 	#1. issue 
 	if len(instrList)>0:
 		freestation=isRSAvailable(instrList[0].op)
@@ -286,29 +218,80 @@ def simulateCycle():
 					
 					assignExecutionStation(RS[i],i,currentCycle)
 	#3 execute
-
 	#4 writeback
 	writeBack()
-
-
-
 	currentCycle+=1
 
 
 
+def printReservationStation(RS):
+	print('\nReservation Stations')
+	print('RS 	busy 	op  	Vj  	Vk  	Qj  	Qk  	Disp')
+	for i in range(len(RS)):
+		print(RS[i])
+	printRAT(RAT)
 
+def printRAT(RAT):
+	print('-----------------------------')
+	print('    ','RF		RAT')
+	for i in range(len(RAT)):
+		print(i,': ',RF[i],end="")
+		if(RAT[i]!=None):
+			print('		RS',RAT[i],sep="")
+		else:
+			print('')
+
+def printInstructions():
+	global instrList
+	print('-----------------------------')
+	print('Instruction Queue')
+	for instr in instrList:
+		if(instr.op==0):
+			print("ADD",end=" ")
+		if(instr.op==1):
+			print("Sub",end=" ")
+		if(instr.op==2):
+			print("Mul",end=" ")
+		if(instr.op==3):
+			print("Div",end=" ")
+		print("R",instr.destreg,", ","R",instr.sreg1,", ","R",instr.sreg2,sep="")
+	print()
+
+
+
+
+
+addExecutionUnit=ExecutionUnit()
+multExecutionUnit=ExecutionUnit()
+currentCycle=1
+
+with open("input.txt","r") as f:
+	 content=f.read().splitlines()
+n=int(content[0])
+cycles=int(content[1])
+instrList=[]
+# reading instructions
+for i in range(n):
+	temp = [int(value) for value in content[i+2].split()]
+	tempInstr=Instruction(temp[0],temp[1],temp[2],temp[3])
+	instrList.append(tempInstr)
+
+# index i stores Ri register Value
+RF=[] #index 0 is empty
+for i in range(n+2,n+10):
+	RF.append(int(content[i]))
+
+RAT=[None]*8   
+RS=[]
+for i in range(5):
+	temp=ReservationStation(busy=0,id=i,op=-1,vj=None,vk=None,qj=-1,qk=-1,disp=0)
+	RS.append(temp)
 
 print('After cycle ',cycles)
 for i in range(cycles):
 	simulateCycle()
-
 printReservationStation(RS)
 printInstructions()
-# for i in range(cycles):
-# 	simulateCycle()
-# print(RS)
-# print(RAT)
-# print(RF)
 
 
 
